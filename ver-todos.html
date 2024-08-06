@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Todos los Pacientes</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .patient-item { background-color: #f0f0f0; padding: 10px; margin-bottom: 20px; border-radius: 5px; }
+        .visit-history { margin-top: 10px; }
+        .visit-entry { background-color: #e0e0e0; padding: 5px; margin-top: 5px; border-radius: 3px; }
+        .add-visit-form { margin-top: 10px; }
+        .add-visit-form textarea { width: 100%; margin-bottom: 5px; }
+        .delete-button { background-color: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+        .delete-button:hover { background-color: #cc0000; }
+        .download-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .download-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Todos los Pacientes</h1>
+    <button id="downloadButton" class="download-button">Descargar Registros (CSV)</button>
+    <div id="patientList"></div>
+
+
+
+    <script>
+        const API_URL = 'https://opticagestionpacientesdemo-production.up.railway.app/api/patients';
+        let allPatients = []; // Variable para almacenar todos los pacientes
+    
+        function getAuthHeader() {
+            const username = sessionStorage.getItem('username');
+            const password = sessionStorage.getItem('password');
+            return 'Basic ' + btoa(username + ':' + password);
+        }
+    
+        async function fetchPatients() {
+            try {
+                const response = await fetch(API_URL, {
+                    headers: {
+                        'Authorization': getAuthHeader(),
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                allPatients = await response.json(); // Guardamos todos los pacientes
+                displayPatients(allPatients);
+            } catch (error) {
+                console.error('Error al obtener pacientes:', error);
+                document.getElementById('patientList').innerHTML = 'Error al cargar pacientes. Por favor, intenta de nuevo.';
+            }
+        }
+    
+        function displayPatients(patients) {
+            const patientList = document.getElementById('patientList');
+            patientList.innerHTML = patients.map(patient => `
+                <div class="patient-item">
+                    <h3>${patient.name} - ${patient.age} años</h3>
+                    <p>ID: ${patient.id}</p>
+                    <p>Email: ${patient.email || 'No disponible'}</p>
+                    <p>Teléfono: ${patient.phone || 'No disponible'}</p>
+                    <p>Servicio: ${patient.service || 'No especificado'}</p>
+                    <p>Producto: ${patient.product || 'No especificado'}</p>
+                    <div class="visit-history">
+                        <h4>Historial de Visitas:</h4>
+                        ${displayVisitHistory(patient.visitHistory)}
+                    </div>
+                    <div class="add-visit-form">
+                        <textarea id="newVisit-${patient.id}" placeholder="Añadir nueva entrada de visita"></textarea>
+                        <button onclick="addVisitEntry(${patient.id})">Añadir Visita</button>
+                    </div>
+                    <button class="delete-button" onclick="deletePatient(${patient.id})">Eliminar Paciente</button>
+                </div>
+            `).join('');
+        }
+    
+        function displayVisitHistory(visitHistory) {
+            if (!visitHistory) return '<p>No hay historial de visitas.</p>';
+            const visits = visitHistory.split('\n').filter(entry => entry.trim() !== '');
+            return visits.map(visit => `<div class="visit-entry">${visit}</div>`).join('') || '<p>No hay historial de visitas.</p>';
+        }
+    
+        async function addVisitEntry(patientId) {
+            const newVisitText = document.getElementById(`newVisit-${patientId}`).value;
+            if (!newVisitText.trim()) {
+                alert('Por favor, ingrese una entrada válida para la visita.');
+                return;
+            }
+    
+            try {
+                const response = await fetch(`${API_URL}/${patientId}/visit-history`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': getAuthHeader(),
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(newVisitText)
+                });
+    
+                if (!response.ok) {
+                    throw new Error('Error al añadir la entrada de visita');
+                }
+    
+                alert('Entrada de visita añadida con éxito');
+                fetchPatients(); // Recargar la lista de pacientes para mostrar la actualización
+            } catch (error) {
+                console.error('Error al añadir entrada de visita:', error);
+                alert('Error al añadir la entrada de visita. Por favor, intente de nuevo.');
+            }
+        }
+    
+        async function deletePatient(patientId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este paciente? Esta acción no se puede deshacer.')) {
+                return;
+            }
+    
+            try {
+                const response = await fetch(`${API_URL}/${patientId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': getAuthHeader(),
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+    
+                if (!response.ok) {
+                    throw new Error('Error al eliminar el paciente');
+                }
+    
+                alert('Paciente eliminado con éxito');
+                fetchPatients(); // Recargar la lista de pacientes para reflejar la eliminación
+            } catch (error) {
+                console.error('Error al eliminar paciente:', error);
+                alert('Error al eliminar el paciente. Por favor, intente de nuevo.');
+            }
+        }
+    
+        function downloadCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Encabezados
+            csvContent += "ID,Nombre,Edad,Email,Teléfono,Servicio,Producto,Historial de Visitas\n";
+    
+            // Datos de pacientes
+            allPatients.forEach(patient => {
+                let row = [
+                    patient.id,
+                    patient.name,
+                    patient.age,
+                    patient.email || '',
+                    patient.phone || '',
+                    patient.service || '',
+                    patient.product || '',
+                    (patient.visitHistory || '').replace(/\n/g, ' ') // Reemplazar saltos de línea por espacios
+                ].map(e => `"${e}"`).join(",");
+                csvContent += row + "\n";
+            });
+    
+            // Crear y descargar el archivo
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "pacientes.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    
+        document.getElementById('downloadButton').addEventListener('click', downloadCSV);
+    
+        fetchPatients();
+    </script>
+
+
+
+
+</body>
+</html>

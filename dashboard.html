@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Pacientes</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            font-family: Arial, sans-serif;
+            height: 100%;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .menu {
+            background-color: #f0f0f0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .menu-button {
+            background-color: #ffffff;
+            color: #333333;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 25px;
+            margin: 10px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 180px;
+            height: 120px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .menu-button:hover {
+            background-color: #007bff;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .menu-button i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .content {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        label {
+            color: #4c53af;
+            font-style: italic;
+        }
+
+        button {
+            background-color: #4c53af;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #171849;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4c53af;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="menu">
+            <button class="menu-button" onclick="loadPage('actualizar-paciente.html')">
+                <i class="fas fa-user-edit"></i>
+                Actualizar Paciente
+            </button>
+            <button class="menu-button" onclick="loadPage('busqueda.html')">
+                <i class="fas fa-search"></i>
+                Búsqueda de Pacientes
+            </button>
+            <button class="menu-button" onclick="loadPage('nuevo-paciente.html')">
+                <i class="fas fa-user-plus"></i>
+                Nuevo Paciente
+            </button>
+            <button class="menu-button" onclick="loadPage('proximavisita.html')">
+                <i class="fas fa-calendar-alt"></i>
+                Próximas Visitas
+            </button>
+            <button class="menu-button" onclick="loadPage('ver-todos.html')">
+                <i class="fas fa-users"></i>
+                Ver Todos
+            </button>
+        </div>
+        <div class="content">
+            <iframe id="contentFrame" src="ver-todos.html"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://opticagestionpacientesdemo-production.up.railway.app/api/patients';
+
+        function getAuthHeader() {
+            const username = sessionStorage.getItem('username');
+            const password = sessionStorage.getItem('password');
+            return 'Basic ' + btoa(username + ':' + password);
+        }
+
+        function loadPage(page) {
+            const contentFrame = document.getElementById('contentFrame');
+            if (contentFrame) {
+                contentFrame.src = page;
+            } else {
+                console.error('El elemento iframe con id "contentFrame" no se encontró');
+            }
+        }
+
+        // Función para inicializar los eventos de los botones del menú
+        function initializeMenuButtons() {
+            const menuButtons = document.querySelectorAll('.menu-button');
+            menuButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const page = this.getAttribute('data-page');
+                    if (page) {
+                        loadPage(page);
+                    }
+                });
+            });
+        }
+
+        // Inicializar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMenuButtons();
+        });
+    </script>
+</body>
+</html>

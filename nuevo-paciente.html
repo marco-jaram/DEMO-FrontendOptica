@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar Nuevo Paciente</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        form { max-width: 400px; margin: 0 auto; }
+        input, textarea, button { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+        textarea { height: 100px; resize: vertical; }
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        label {
+            color: #4c53af;
+            font-style: italic;
+        }
+
+        button {
+            background-color: #4c53af;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #171849;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4c53af;
+        }
+    </style>
+</head>
+<body>
+    <h1>Agregar Nuevo Paciente</h1>
+    <form id="newPatientForm">
+        <input type="text" id="name" placeholder="Nombre" required>
+        <input type="number" id="age" placeholder="Edad" required>
+        <input type="email" id="email" placeholder="Email">
+        <input type="tel" id="phone" placeholder="Teléfono">
+        <input type="text" id="service" placeholder="Servicio">
+        <input type="text" id="product" placeholder="Producto">
+        <label for="lastVisitDate">Última visita</label>
+        <input type="date" id="lastVisitDate" placeholder="Última Visita">
+        <label for="nextVisitDate">Próxima visita</label>
+        <input type="date" id="nextVisitDate" placeholder="Próxima Visita">
+        <textarea id="visitHistory" placeholder="Historial de visitas"></textarea>
+        <button type="submit">Crear Paciente</button>
+    </form>
+
+    <script>
+        const API_URL = 'https://opticagestionpacientesdemo-production.up.railway.app/api/patients';
+
+        function getAuthHeader() {
+            const username = sessionStorage.getItem('username');
+            const password = sessionStorage.getItem('password');
+            return 'Basic ' + btoa(username + ':' + password);
+        }
+
+        async function addPatient(event) {
+            event.preventDefault();
+            const patientData = {
+                name: document.getElementById('name').value,
+                age: parseInt(document.getElementById('age').value),
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                service: document.getElementById('service').value,
+                product: document.getElementById('product').value,
+                lastVisitDate: document.getElementById('lastVisitDate').value || null,
+                nextVisitDate: document.getElementById('nextVisitDate').value || null,
+                visitHistory: document.getElementById('visitHistory').value
+            };
+
+            console.log('Datos a enviar:', patientData);  // Para depuración
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': getAuthHeader(),
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(patientData),
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const createdPatient = await response.json();
+                console.log('Paciente creado:', createdPatient);  // Para depuración
+                alert('Paciente creado con éxito');
+                document.getElementById('newPatientForm').reset();
+            } catch (error) {
+                console.error('Error al crear paciente:', error);
+                alert('Error al crear paciente. Por favor, intenta de nuevo.');
+            }
+        }
+
+        document.getElementById('newPatientForm').addEventListener('submit', addPatient);
+    </script>
+</body>
+</html>

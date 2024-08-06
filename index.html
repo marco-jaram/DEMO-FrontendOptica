@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+    <div class="contenedor">
+        <h1>OPTICA</h1>
+        <div class="mi-formulario">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <input type="text" id="username" placeholder="Nombre" required>
+                <input type="password" id="password" placeholder="Clave" required>
+                <button type="submit">Login</button>
+            </form>
+            <div id="message"></div>
+        </div>
+    </div>
+
+    <script>
+      document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    // Crear un objeto de opciones para fetch
+    const fetchOptions = {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Basic ' + btoa(username + ':' + password),
+            'Content-Type': 'application/json'
+        },
+        mode: 'cors'
+    };
+
+    // Intentar primero sin credentials
+    fetch('https://opticagestionpacientesdemo-production.up.railway.app/api/patients', fetchOptions)
+        .then(response => {
+            if (response.ok) {
+                handleSuccessfulLogin(username, password);
+            } else {
+                // Si falla, intentar con credentials
+                fetchOptions.credentials = 'include';
+                return fetch('sistemagestionclientes-production.up.railway.app/api/patients', fetchOptions);
+            }
+        })
+        .then(response => {
+            if (response && response.ok) {
+                handleSuccessfulLogin(username, password);
+            } else {
+                throw new Error('Login failed: ' + response.status);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            let errorMessage = 'Error de login: ';
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage += 'No se pudo conectar con el servidor. Verifica tu conexión a internet o si el servidor está bloqueando las solicitudes CORS.';
+            } else if (error.message.includes('401')) {
+                errorMessage += 'Usuario o contraseña incorrectos.';
+            } else if (error.message.includes('403')) {
+                errorMessage += 'Acceso prohibido. Verifica tus permisos o la configuración CORS del servidor.';
+            } else {
+                errorMessage += error.message;
+            }
+            document.getElementById('message').textContent = errorMessage;
+        });
+});
+
+function handleSuccessfulLogin(username, password) {
+    sessionStorage.setItem('username', username);
+    sessionStorage.setItem('password', password);
+    window.location.href = 'dashboard.html';
+}
+    </script>
+
+</body>
+
+</html>

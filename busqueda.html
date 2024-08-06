@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Búsqueda de Pacientes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f9;
+        }
+        .search-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #searchResults {
+            margin-top: 20px;
+        }
+        .patient-card {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .visit-history {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        label {
+            color: #4c53af;
+            font-style: italic;
+        }
+
+        button {
+            background-color: #4c53af;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #171849;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4c53af;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <h1>Búsqueda de Pacientes</h1>
+        <select id="searchType">
+            <option value="id">ID</option>
+            <option value="name">Nombre</option>
+            <option value="phone">Teléfono</option>
+            <option value="email">Email</option>
+        </select>
+        <input type="text" id="searchTerm" placeholder="Término de búsqueda">
+        <button onclick="searchPatients()">Buscar</button>
+        <div id="searchResults"></div>
+    </div>
+
+    <script>
+    const API_URL = 'https://opticagestionpacientesdemo-production.up.railway.app/api/patients';
+
+    function getAuthHeader() {
+        const username = sessionStorage.getItem('username');
+        const password = sessionStorage.getItem('password');
+        return 'Basic ' + btoa(username + ':' + password);
+    }
+
+    async function searchPatients() {
+        const searchType = document.getElementById('searchType').value;
+        const searchTerm = document.getElementById('searchTerm').value;
+        const searchResults = document.getElementById('searchResults');
+        
+        searchResults.innerHTML = 'Buscando...';
+
+        if (!sessionStorage.getItem('username') || !sessionStorage.getItem('password')) {
+            searchResults.innerHTML = 'No se encontraron credenciales. Por favor, inicia sesión nuevamente.';
+            return;
+        }
+
+        try {
+            let url;
+            if (searchType === 'id') {
+                url = `${API_URL}/${searchTerm}`;
+            } else {
+                url = `${API_URL}/search/${searchType}?${searchType}=${encodeURIComponent(searchTerm)}`;
+            }
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (response.status === 401) {
+                searchResults.innerHTML = 'Sesión expirada o credenciales inválidas. Por favor, inicia sesión nuevamente.';
+                window.location.href = 'index.html';
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const patients = Array.isArray(data) ? data : [data];
+            displayResults(patients);
+        } catch (error) {
+            console.error('Error al buscar pacientes:', error);
+            searchResults.innerHTML = `
+                <p>Error al buscar pacientes: ${error.message}</p>
+                <p>Por favor, intenta de nuevo más tarde o contacta al soporte técnico.</p>
+            `;
+        }
+    }
+
+    function displayResults(patients) {
+        const searchResults = document.getElementById('searchResults');
+        if (patients.length === 0) {
+            searchResults.innerHTML = '<p>No se encontraron pacientes.</p>';
+        } else {
+            searchResults.innerHTML = patients.map(patient => `
+                <div class="patient-card">
+                    <h3>${patient.name}</h3>
+                    <p>ID: ${patient.id}</p>
+                    <p>Edad: ${patient.age}</p>
+                    <p>Email: ${patient.email || 'No disponible'}</p>
+                    <p>Teléfono: ${patient.phone || 'No disponible'}</p>
+                    <p>Servicio: ${patient.service || 'No especificado'}</p>
+                    <p>Producto: ${patient.product || 'No especificado'}</p>
+                    <p>Última visita: ${patient.lastVisitDate ? new Date(patient.lastVisitDate).toLocaleDateString() : 'No registrada'}</p>
+                    <p>Próxima visita: ${patient.nextVisitDate ? new Date(patient.nextVisitDate).toLocaleDateString() : 'No programada'}</p>
+                    <div class="visit-history">
+                        <h4>Historial de Visitas:</h4>
+                        <p>${patient.visitHistory || 'No hay historial de visitas registrado.'}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+    </script>
+</body>
+</html>

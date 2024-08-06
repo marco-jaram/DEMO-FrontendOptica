@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Próximas Visitas</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .controls { margin-bottom: 20px; }
+        input, button { padding: 10px; margin-right: 10px; }
+        button { cursor: pointer; }
+        #visitList { list-style-type: none; padding: 0; }
+        .patient-card {
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .patient-card h3 { margin-top: 0; }
+        input,
+       .contenedor {
+        margin: 0 auto;
+        max-width: 1200px;
+       }
+
+        label {
+            color: #4c53af;
+            font-style: italic;
+        }
+
+        button {
+            background-color: #4c53af;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #171849;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4c53af;
+        }
+    </style>
+</head>
+<body>
+    <h1>Próximas Visitas</h1>
+    <div class="contenedor">
+    <p>Ingresa el número de días</p>
+    <div class="controls">
+        <input type="number" id="daysInput" value="7" min="1">
+        <button onclick="fetchUpcomingVisits()">Buscar Visitas</button>
+    </div>
+    <div id="visitList"></div>
+</div>
+    <script>
+        const API_URL = 'https://opticagestionpacientesdemo-production.up.railway.app/api/patients';
+
+        function getAuthHeader() {
+            const username = sessionStorage.getItem('username');
+            const password = sessionStorage.getItem('password');
+            return 'Basic ' + btoa(username + ':' + password);
+        }
+
+        async function fetchUpcomingVisits() {
+            const days = document.getElementById('daysInput').value;
+            const visitList = document.getElementById('visitList');
+            visitList.innerHTML = 'Cargando...';
+
+            try {
+                const response = await fetch(`${API_URL}/upcoming-visits?days=${days}`, {
+                    headers: {
+                        'Authorization': getAuthHeader(),
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const patients = await response.json();
+                displayVisits(patients);
+            } catch (error) {
+                console.error('Error al obtener próximas visitas:', error);
+                visitList.innerHTML = `<p>Error al cargar las próximas visitas: ${error.message}</p>`;
+            }
+        }
+
+        function displayVisits(patients) {
+            const visitList = document.getElementById('visitList');
+            if (patients.length === 0) {
+                visitList.innerHTML = '<p>No hay próximas visitas programadas para el período especificado.</p>';
+            } else {
+                visitList.innerHTML = patients.map(patient => `
+                    <div class="patient-card">
+                        <h3>${patient.name}</h3>
+                        <p><strong>ID:</strong> ${patient.id}</p>
+                        <p><strong>Edad:</strong> ${patient.age}</p>
+                        <p><strong>Email:</strong> ${patient.email || 'No disponible'}</p>
+                        <p><strong>Teléfono:</strong> ${patient.phone || 'No disponible'}</p>
+                        <p><strong>Servicio:</strong> ${patient.service || 'No especificado'}</p>
+                        <p><strong>Producto:</strong> ${patient.product || 'No especificado'}</p>
+                        <p><strong>Próxima visita:</strong> ${new Date(patient.nextVisitDate).toLocaleDateString()}</p>
+                        <p><strong>Última visita:</strong> ${patient.lastVisitDate ? new Date(patient.lastVisitDate).toLocaleDateString() : 'No registrada'}</p>
+                        <div>
+                            <strong>Historial de visitas:</strong>
+                            <p>${patient.visitHistory || 'No hay historial de visitas registrado.'}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Cargar las próximas visitas al iniciar la página
+        fetchUpcomingVisits();
+    </script>
+</body>
+</html>
